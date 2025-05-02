@@ -38,10 +38,10 @@ app.get('/', async (req, res) => {
 
 // **** USERS *****
 app.post('/add_user', async (req, res) => {
-    const {name, password, email } = req.body;
+    const {name, password, email, balance } = req.body;
     try {
-      const queryText = "INSERT INTO users (name, password, email) VALUES ($1, $2, $3)";
-      await pool.query(queryText, [name, password, email]);
+      const queryText = "INSERT INTO users (name, password, email, balance) VALUES ($1, $2, $3, $4)";
+      await pool.query(queryText, [name, password, email, balance]);
       res.send("User added successfully");
     } catch (err) {
       console.log(`Error adding user: ${err}`);
@@ -49,12 +49,12 @@ app.post('/add_user', async (req, res) => {
     }
 });
 
-app.get('/user', async (req, res) => {
-    const { id } = req.query;
-    console.log(`Fetching user with id: ${id}`);
+app.get('/get_user', async (req, res) => {
+    const { email } = req.query;
+    console.log(`Fetching user with id: ${email}`);
     try {
-      const queryText = "SELECT * FROM users WHERE id = $1";
-      const result = await pool.query(queryText, [id]);
+      const queryText = "SELECT * FROM users WHERE email = $1";
+      const result = await pool.query(queryText, [email]);
       if (result.rows.length > 0) {
         res.json(result.rows[0]);
       } else {
@@ -68,6 +68,8 @@ app.get('/user', async (req, res) => {
 
 app.put('/edit_user_details', async (req, res) => {
     const { id, name, email } = req.body;
+    console.log(`Updating user with id: ${id}`);
+    console.log(`New name: ${name}, New email: ${email}`);
     try {
       const queryText = "UPDATE users SET name = $1, email = $2 WHERE id = $3";
       await pool.query(queryText, [name, email, id]);
@@ -92,26 +94,14 @@ app.put('/edit_user_password', async (req, res) => {
 
 
 // ***** ACCOUNT BALANCE *****
-app.post('/create_account_balance', async (req, res) => {
-    const { id, balance } = req.body;
-    try {
-      const queryText = "INSERT INTO account_balance (id, balance) VALUES ($1, $2)";
-      await pool.query(queryText, [id, balance]);
-      res.send("Account balance added successfully");
-    } catch (err) {
-      console.log(`Error adding account balance: ${err}`);
-      res.status(500).json({ error: 'Error Adding Account Balance' });
-    }
-});
-
-app.get('/balance/', async (req, res) => {
+app.get('/get_user_balance', async (req, res) => {
     const { id } = req.query;
     console.log(`Fetching balance for user with id: ${id}`);
     try {
-      const queryText = "SELECT * FROM account_balance WHERE id = $1";
+      const queryText = "SELECT * FROM users WHERE id = $1";
       const result = await pool.query(queryText, [id]);
       if (result.rows.length > 0) {
-        res.json(result.rows[0]);
+        res.json(result.rows[0].balance);
       } else {
         res.status(404).json({ error: 'Account balance not found' });
       }
@@ -121,16 +111,35 @@ app.get('/balance/', async (req, res) => {
     }
 });
 
-app.post('/update_balance', async (req, res) => {
+app.post('/update_user_balance', async (req, res) => {
     const { id, balance } = req.body;
+  
+    // Get User First
     try {
-      const queryText = "INSERT INTO account_balance (id, balance) VALUES ($1, $2)";
-      await pool.query(queryText, [id, balance]);
-      res.send("Account balance added successfully");
+      const queryText = "SELECT * FROM users WHERE id = $1";
+      const result = await pool.query(queryText, [id]);
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        const userBalance = user.balance
+        const newBalance = parseFloat(userBalance) + parseFloat(balance);
+
+        try {
+          const queryText = "UPDATE users SET balance = $2 WHERE id = $1";
+          await pool.query(queryText, [id, newBalance]);
+          res.send("Account balance updated successfully");
+        } catch (err) {
+          console.log(`Error adding account balance: ${err}`);
+          res.status(500).json({ error: 'Error Adding Account Balance' });
+        }
+      } else {
+        res.status(404).json({ error: 'User not found' });
+      }
     } catch (err) {
-      console.log(`Error adding account balance: ${err}`);
-      res.status(500).json({ error: 'Error Adding Account Balance' });
+        console.log(`Error fetching user: ${err}`);
+        res.status(500).json({ error: 'Error fetching user' });
     }
+
+
 });
 
 // **** TRANSACTIONS ***** 
@@ -166,14 +175,15 @@ app.post('/add_transaction', async (req, res) => {
 // ***** RFIF MAPPING *****
 
 app.get('/rfid_mapping', async (req, res) => {
-  const { id } = req.query;
-  console.log(`Fetching RFID mapping for user with id: ${id}`);
+  const { rfid_hex } = req.query;
+  console.log(`Fetching RFID mapping for user with id: ${rfid_hex}`);
   try {
-    const queryText = "SELECT * FROM rfid_mapping WHERE id = $1";
-    const result = await pool.query(queryText, [id]);
+    const queryText = "SELECT * FROM rfid_mapping WHERE rfid_hex = $1";
+    const result = await pool.query(queryText, [rfid_hex]);
     if (result.rows.length > 0) {
       res.json(result.rows[0]);
     } else {
+      
       res.status(404).json({ error: 'RFID mapping not found' });
     }
   } catch (err) {
@@ -183,10 +193,10 @@ app.get('/rfid_mapping', async (req, res) => {
 });
 
 app.post('/add_rfid_mapping', async (req, res) => {
-    const { id, rfid_hex } = req.body;
+    const { rfid_hex } = req.body;
     try {
-      const queryText = "INSERT INTO rfid_mapping (id, rfid_hex) VALUES ($1, $2)";
-      await pool.query(queryText, [id, rfid_hex]);
+      const queryText = "INSERT INTO rfid_mapping (rfid_hex) VALUES ($1)";
+      await pool.query(queryText, [rfid_hex]);
       res.send("RFID mapping added successfully");
     } catch (err) {
       console.log(`Error adding RFID mapping: ${err}`);
