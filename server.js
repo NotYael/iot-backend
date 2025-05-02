@@ -1,53 +1,47 @@
 import express from 'express';
 import pool from './db.js';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 
 const app = express();
-const port = 3000;
+const port = 4000;
 
 /* 
 TODO: IMPLEMENT THE FOLLOWING
 DATABASE:
-[X] (GET) Get user by id
-[X] (POST) Add new user
-[X] (PUT) Update user details by id (name and email)
-[X] (PUT) Update user password by id
-[X] (POST) Create new account balance for new users
-[X] (GET) Get user's account balance by id
-[X] (UPDATE) Update user's account balance by id after transaction
-[X] (GET) Get user's transaction list by id
-[X] (POST) Add new transaction for user by id
-
+[] Merge users and balance tables into one table
+ 
 CHATGPT:
-[] Sent requests to ChatGPT API
+[] Translate Python code to JS
 
 EMAIL:
 [] Send email to user for vouchers
-
 */
 
 // Middleware 
+app.use(cors());
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json())
 
 // THIS IS JUST TO TEST DB CONNECTION
-// app.get('/', async (req, res) => {
-//   try {
-//     const result = await pool.query('SELECT * FROM users;');
-//     res.json(result.rows);
-//   } catch (err) {
-//     console.log(`Error connecting to the database: ${err}`);
-//     res.status(500).json({ error: 'Error fetching users' });
-//   }
-// });
+app.get('/', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM users;');
+    res.json(result.rows);
+  } catch (err) {
+    console.log(`Error connecting to the database: ${err}`);
+    res.status(500).json({ error: 'Error fetching users' });
+  }
+});
 
 
 // **** USERS *****
 app.post('/add_user', async (req, res) => {
-    const { id, name, password, email } = req.body;
+    const {name, password, email } = req.body;
     try {
-      const queryText = "INSERT INTO users (id, name, password, email) VALUES ($1, $2, $3, $4)";
-      await pool.query(queryText, [id, name, password, email]);
+      const queryText = "INSERT INTO users (name, password, email) VALUES ($1, $2, $3)";
+      await pool.query(queryText, [name, password, email]);
       res.send("User added successfully");
     } catch (err) {
       console.log(`Error adding user: ${err}`);
@@ -97,7 +91,7 @@ app.put('/edit_user_password', async (req, res) => {
 });
 
 
-// **** ACCOUNT BALANCE *****
+// ***** ACCOUNT BALANCE *****
 app.post('/create_account_balance', async (req, res) => {
     const { id, balance } = req.body;
     try {
@@ -166,6 +160,37 @@ app.post('/add_transaction', async (req, res) => {
     } catch (err) {
         console.log(`Error adding transaction: ${err}`);
         res.status(500).json({ error: 'Error Adding Transaction' });
+    }
+});
+
+// ***** RFIF MAPPING *****
+
+app.get('/rfid_mapping', async (req, res) => {
+  const { id } = req.query;
+  console.log(`Fetching RFID mapping for user with id: ${id}`);
+  try {
+    const queryText = "SELECT * FROM rfid_mapping WHERE id = $1";
+    const result = await pool.query(queryText, [id]);
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: 'RFID mapping not found' });
+    }
+  } catch (err) {
+      console.log(`Error fetching RFID mapping: ${err}`);
+      res.status(500).json({ error: 'Error fetching RFID mapping' });
+  }
+});
+
+app.post('/add_rfid_mapping', async (req, res) => {
+    const { id, rfid_hex } = req.body;
+    try {
+      const queryText = "INSERT INTO rfid_mapping (id, rfid_hex) VALUES ($1, $2)";
+      await pool.query(queryText, [id, rfid_hex]);
+      res.send("RFID mapping added successfully");
+    } catch (err) {
+      console.log(`Error adding RFID mapping: ${err}`);
+      res.status(500).json({ error: 'Error Adding RFID Mapping' });
     }
 });
 
