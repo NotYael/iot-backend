@@ -217,6 +217,7 @@ app.post("/ai_bottle_check", async (req, res) => {
   const { bottle } = req.body;
 
   try {
+    console.log(`Checking bottle`);
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
