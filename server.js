@@ -213,7 +213,7 @@ app.post("/add_transaction", async (req, res) => {
 
 // ***** APIs *****
 
-app.post("/ai_bottle_check", async (req, res) => {
+app.post("/bottle", async (req, res) => {
   const { bottle } = req.body;
 
   try {
