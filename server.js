@@ -9,7 +9,13 @@ import nodemailer from "nodemailer";
 dotenv.config();
 
 const app = express();
-const port = 4000;
+const port = process.env.PORT || 4000;
+
+// Configure CORS for both development and production
+const allowedOrigins = [
+  "http://localhost:4000", // Local development
+  process.env.FRONTEND_URL, // Production frontend URL
+];
 
 // Middleware
 app.use(cors());
