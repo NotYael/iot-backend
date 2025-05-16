@@ -17,30 +17,31 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 // THIS IS JUST TO TEST DB CONNECTION
-// app.get('/', async (req, res) => {
-//   try {
-//     const result = await pool.query('SELECT * FROM users;');
-//     res.json(result.rows);
-//   } catch (err) {
-//     console.log(`Error connecting to the database: ${err}`);
-//     res.status(500).json({ error: 'Error fetching users' });
-//   }
-// });
+app.get("/", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM users;");
+    res.json(result.rows);
+  } catch (err) {
+    console.log(`Error connecting to the database: ${err}`);
+    res.status(500).json({ error: "Error fetching users" });
+  }
+});
 
 // **** USERS *****
 app.post("/add_user", async (req, res) => {
-  const { name, password, email, balance, rfid, permission } = req.body;
+  const { rfid, name, email, password, balance, permission } = req.body;
   try {
     const queryText =
-      "INSERT INTO users (name, password, email, balance, rfid, permission) VALUES ($1, $2, $3, $4, $5, $6)";
+      "INSERT INTO users (rfid, name, email, password, balance, permission) VALUES ($1, $2, $3, $4, $5, $6)";
     await pool.query(queryText, [
-      name,
-      password,
-      email,
-      balance,
       rfid,
+      name,
+      email,
+      password,
+      balance,
       permission,
     ]);
+    console.log(`User added successfully: ${rfid}, ${name}, ${email}`);
     res.send("User added successfully");
   } catch (err) {
     console.log(`Error adding user: ${err}`);
@@ -62,6 +63,23 @@ app.get("/get_user", async (req, res) => {
   } catch (err) {
     console.log(`Error fetching user: ${err}`);
     res.status(500).json({ error: "Error fetching user" });
+  }
+});
+
+app.get("/get_user_by_rfid", async (req, res) => {
+  const { rfid } = req.query;
+  console.log(`Fetching RFID mapping for user with RFID: ${rfid}`);
+  try {
+    const queryText = "SELECT * FROM users WHERE rfid = $1";
+    const result = await pool.query(queryText, [rfid]);
+    if (result.rows.length > 0) {
+      res.json(result.rows[0]);
+    } else {
+      res.status(404).json({ error: "RFID mapping not found" });
+    }
+  } catch (err) {
+    console.log(`Error fetching RFID mapping: ${err}`);
+    res.status(500).json({ error: "Error fetching RFID mapping" });
   }
 });
 
@@ -110,20 +128,23 @@ app.get("/get_user_balance", async (req, res) => {
 });
 
 app.post("/update_user_balance", async (req, res) => {
-  const { id, balance } = req.body;
-
+  const { rfid, balance } = req.body;
+  console.log(
+    `Updating balance for user with rfid: ${rfid}, reducing balance by ${balance}`
+  );
   // Get User First
   try {
-    const queryText = "SELECT * FROM users WHERE id = $1";
-    const result = await pool.query(queryText, [id]);
+    const queryText = "SELECT * FROM users WHERE rfid = $1";
+    const result = await pool.query(queryText, [rfid]);
     if (result.rows.length > 0) {
       const user = result.rows[0];
       const userBalance = user.balance;
-      const newBalance = parseFloat(userBalance) + parseFloat(balance);
+      const newBalance = parseInt(userBalance) + parseInt(balance);
 
       try {
-        const queryText = "UPDATE users SET balance = $2 WHERE id = $1";
-        await pool.query(queryText, [id, newBalance]);
+        const queryText = "UPDATE users SET balance = $2 WHERE rfid = $1";
+        await pool.query(queryText, [rfid, newBalance]);
+        console.log(`New balance for user with rfid: ${rfid} is ${newBalance}`);
         res.send("Account balance updated successfully");
       } catch (err) {
         console.log(`Error adding account balance: ${err}`);
@@ -140,11 +161,11 @@ app.post("/update_user_balance", async (req, res) => {
 
 // **** TRANSACTIONS *****
 app.get("/transactions", async (req, res) => {
-  const { id } = req.query;
-  console.log(`Fetching transactions for user with id: ${id}`);
+  const { rfid } = req.query;
+  console.log(`Fetching transactions for user with rfid: ${rfid}`);
   try {
-    const queryText = "SELECT * FROM transaction_history WHERE user_id = $1";
-    const result = await pool.query(queryText, [id]);
+    const queryText = "SELECT * FROM transaction_history WHERE rfid = $1";
+    const result = await pool.query(queryText, [rfid]);
     if (result.rows.length > 0) {
       res.json(result.rows);
     } else {
@@ -158,47 +179,29 @@ app.get("/transactions", async (req, res) => {
 
 app.post("/add_transaction", async (req, res) => {
   const {
-    user_id,
+    rfid,
     transaction_date,
     transaction_type,
     bottle_count,
-    balance_added,
-    balance_deducted,
+    balance_modified,
   } = req.body;
   try {
     const queryText =
-      "INSERT INTO transaction_history (user_id, transaction_date, transaction_type, bottle_count, balance_added, balance_deducted) VALUES ($1, $2, $3, $4, $5, $6)";
+      "INSERT INTO transaction_history (rfid, transaction_date, transaction_type, bottle_count, balance_modified) VALUES ($1, $2, $3, $4, $5)";
     await pool.query(queryText, [
-      user_id,
+      rfid,
       transaction_date,
       transaction_type,
       bottle_count,
-      balance_added,
-      balance_deducted,
+      balance_modified,
     ]);
+    console.log(
+      `Transaction added successfully: ${rfid}, ${transaction_date}, ${transaction_type}, ${bottle_count}, ${balance_modified}`
+    );
     res.send("Transaction added successfully");
   } catch (err) {
     console.log(`Error adding transaction: ${err}`);
     res.status(500).json({ error: "Error Adding Transaction" });
-  }
-});
-
-// ***** RFIF MAPPING *****
-
-app.get("/get_user_by_rfid", async (req, res) => {
-  const { rfid } = req.query;
-  console.log(`Fetching RFID mapping for user with RFID: ${rfid}`);
-  try {
-    const queryText = "SELECT * FROM users WHERE rfid = $1";
-    const result = await pool.query(queryText, [rfid]);
-    if (result.rows.length > 0) {
-      res.json(result.rows[0]);
-    } else {
-      res.status(404).json({ error: "RFID mapping not found" });
-    }
-  } catch (err) {
-    console.log(`Error fetching RFID mapping: ${err}`);
-    res.status(500).json({ error: "Error fetching RFID mapping" });
   }
 });
 
