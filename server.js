@@ -311,5 +311,5 @@ app.post("/voucher", async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Backend running on Port ${port}`);
+  console.log(`Backend online!`);
 });
