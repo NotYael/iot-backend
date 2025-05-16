@@ -104,10 +104,10 @@ app.put("/edit_user_details", async (req, res) => {
 });
 
 app.put("/edit_user_password", async (req, res) => {
-  const { id, password } = req.body;
+  const { rfid, password } = req.body;
   try {
-    const queryText = "UPDATE users SET password = $1 WHERE id = $2";
-    await pool.query(queryText, [password, id]);
+    const queryText = "UPDATE users SET password = $1 WHERE rfid = $2";
+    await pool.query(queryText, [password, rfid]);
     res.send("User password updated successfully");
   } catch (err) {
     console.log(`Error updating user: ${err}`);
@@ -117,11 +117,11 @@ app.put("/edit_user_password", async (req, res) => {
 
 // ***** ACCOUNT BALANCE *****
 app.get("/get_user_balance", async (req, res) => {
-  const { id } = req.query;
-  console.log(`Fetching balance for user with id: ${id}`);
+  const { rfid } = req.query;
+  console.log(`Fetching balance for user with rfid: ${rfid}`);
   try {
-    const queryText = "SELECT * FROM users WHERE id = $1";
-    const result = await pool.query(queryText, [id]);
+    const queryText = "SELECT * FROM users WHERE rfid = $1";
+    const result = await pool.query(queryText, [rfid]);
     if (result.rows.length > 0) {
       res.json(result.rows[0].balance);
     } else {
