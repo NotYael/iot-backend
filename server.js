@@ -310,6 +310,18 @@ app.post("/voucher", async (req, res) => {
   }
 });
 
+app.post("/accept_bottle", async (req, res) => {
+  const { bottle } = req.body;
+  console.log(`TESTING: Accepting bottle`);
+  res.send("TRUE");
+});
+
+app.post("/reject_bottle", async (req, res) => {
+  const { bottle } = req.body;
+  console.log(`TESTING: Rejecting bottle`);
+  res.send("FALSE");
+});
+
 app.listen(port, () => {
   console.log(`Backend online!`);
 });
