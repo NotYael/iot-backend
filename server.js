@@ -217,7 +217,7 @@ app.post("/bottle", async (req, res) => {
   const { bottle } = req.body;
 
   try {
-    console.log(`Checking bottle`);
+    console.log(`AI: Checking bottle...`);
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -252,8 +252,10 @@ app.post("/bottle", async (req, res) => {
       response.data?.choices?.[0]?.message?.content || "No response";
     if (result === "TRUE") {
       res.status(200).send("TRUE");
+      console.log(`Bottle accepted`);
     } else {
       res.status(404).send("FALSE");
+      console.log(`Bottle rejected`);
     }
   } catch (err) {
     console.log(`ChatGPT Error: ${err}`);
@@ -316,13 +318,13 @@ app.post("/voucher", async (req, res) => {
 
 app.post("/accept_bottle", async (req, res) => {
   const { bottle } = req.body;
-  console.log(`TESTING: Accepting bottle`);
+  console.log(`TEST: Accepting bottle`);
   res.status(200).send("TRUE");
 });
 
 app.post("/reject_bottle", async (req, res) => {
   const { bottle } = req.body;
-  console.log(`TESTING: Rejecting bottle`);
+  console.log(`TEST: Rejecting bottle`);
   res.status(404).send("FALSE");
 });
 
