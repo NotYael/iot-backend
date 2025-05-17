@@ -26,7 +26,7 @@ app.use(bodyParser.json());
 app.get("/", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM users;");
-    res.json(result.rows);
+    res.status(200).json(result.rows);
   } catch (err) {
     console.log(`Error connecting to the database: ${err}`);
     res.status(500).json({ error: "Error fetching users" });
@@ -48,7 +48,7 @@ app.post("/add_user", async (req, res) => {
       permission,
     ]);
     console.log(`User added successfully: ${rfid}, ${name}, ${email}`);
-    res.send("User added successfully");
+    res.status(200).send("User added successfully");
   } catch (err) {
     console.log(`Error adding user: ${err}`);
     res.status(500).json({ error: "Error Adding User" });
@@ -62,7 +62,7 @@ app.get("/get_user", async (req, res) => {
     const queryText = "SELECT * FROM users WHERE email = $1";
     const result = await pool.query(queryText, [email]);
     if (result.rows.length > 0) {
-      res.json(result.rows[0]);
+      res.status(200).json(result.rows[0]);
     } else {
       res.status(404).json({ error: "User not found" });
     }
@@ -79,7 +79,7 @@ app.get("/get_user_by_rfid", async (req, res) => {
     const queryText = "SELECT * FROM users WHERE rfid = $1";
     const result = await pool.query(queryText, [rfid]);
     if (result.rows.length > 0) {
-      res.json(result.rows[0]);
+      res.status(200).json(result.rows[0]);
     } else {
       res.status(404).json({ error: "RFID mapping not found" });
     }
@@ -96,7 +96,7 @@ app.put("/edit_user_details", async (req, res) => {
   try {
     const queryText = "UPDATE users SET name = $1, email = $2 WHERE rfid = $3";
     await pool.query(queryText, [name, email, rfid]);
-    res.send("User updated successfully");
+    res.status(200).send("User updated successfully");
   } catch (err) {
     console.log(`Error updating user: ${err}`);
     res.status(500).json({ error: "Error Updating User" });
@@ -108,7 +108,7 @@ app.put("/edit_user_password", async (req, res) => {
   try {
     const queryText = "UPDATE users SET password = $1 WHERE rfid = $2";
     await pool.query(queryText, [password, rfid]);
-    res.send("User password updated successfully");
+    res.status(200).send("User password updated successfully");
   } catch (err) {
     console.log(`Error updating user: ${err}`);
     res.status(500).json({ error: "Error Updating User" });
@@ -123,7 +123,7 @@ app.get("/get_user_balance", async (req, res) => {
     const queryText = "SELECT * FROM users WHERE rfid = $1";
     const result = await pool.query(queryText, [rfid]);
     if (result.rows.length > 0) {
-      res.json(result.rows[0].balance);
+      res.status(200).json(result.rows[0].balance);
     } else {
       res.status(404).json({ error: "Account balance not found" });
     }
@@ -151,7 +151,7 @@ app.post("/update_user_balance", async (req, res) => {
         const queryText = "UPDATE users SET balance = $2 WHERE rfid = $1";
         await pool.query(queryText, [rfid, newBalance]);
         console.log(`New balance for user with rfid: ${rfid} is ${newBalance}`);
-        res.send("Account balance updated successfully");
+        res.status(200).send("Balance updated successfully");
       } catch (err) {
         console.log(`Error adding account balance: ${err}`);
         res.status(500).json({ error: "Error Adding Account Balance" });
@@ -173,7 +173,7 @@ app.get("/transactions", async (req, res) => {
     const queryText = "SELECT * FROM transaction_history WHERE rfid = $1";
     const result = await pool.query(queryText, [rfid]);
     if (result.rows.length > 0) {
-      res.json(result.rows);
+      res.status(200).json(result.rows);
     } else {
       res.status(404).json({ error: "Transactions not found" });
     }
@@ -204,7 +204,7 @@ app.post("/add_transaction", async (req, res) => {
     console.log(
       `Transaction added successfully: ${rfid}, ${transaction_date}, ${transaction_type}, ${bottle_count}, ${balance_modified}`
     );
-    res.send("Transaction added successfully");
+    res.status(200).send("Transaction added successfully");
   } catch (err) {
     console.log(`Error adding transaction: ${err}`);
     res.status(500).json({ error: "Error Adding Transaction" });
@@ -250,7 +250,11 @@ app.post("/bottle", async (req, res) => {
 
     const result =
       response.data?.choices?.[0]?.message?.content || "No response";
-    res.json({ result });
+    if (result === "TRUE") {
+      res.status(200).send("TRUE");
+    } else {
+      res.status(404).send("FALSE");
+    }
   } catch (err) {
     console.log(`ChatGPT Error: ${err}`);
     res.status(500).json({ error: "ChatGPT Error" });
@@ -304,7 +308,7 @@ app.post("/voucher", async (req, res) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    res.send("Email sent successfully");
+    res.status(200).send("Email sent successfully");
   } catch (err) {
     res.status(500).json({ error: "Error sending email" });
   }
@@ -313,13 +317,13 @@ app.post("/voucher", async (req, res) => {
 app.post("/accept_bottle", async (req, res) => {
   const { bottle } = req.body;
   console.log(`TESTING: Accepting bottle`);
-  res.send("TRUE");
+  res.status(200).send("TRUE");
 });
 
 app.post("/reject_bottle", async (req, res) => {
   const { bottle } = req.body;
   console.log(`TESTING: Rejecting bottle`);
-  res.send("FALSE");
+  res.status(404).send("FALSE");
 });
 
 app.listen(port, () => {
