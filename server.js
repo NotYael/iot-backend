@@ -189,13 +189,8 @@ app.get("/transactions", async (req, res) => {
 });
 
 app.post("/add_transaction", async (req, res) => {
-  const {
-    rfid,
-    transaction_date,
-    transaction_type,
-    bottle_count,
-    balance_modified,
-  } = req.body;
+  const { rfid, transaction_type, bottle_count, balance_modified } = req.body;
+  const transaction_date = new Date().toISOString();
   try {
     const queryText =
       "INSERT INTO transaction_history (rfid, transaction_date, transaction_type, bottle_count, balance_modified) VALUES ($1, $2, $3, $4, $5)";
