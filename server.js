@@ -51,7 +51,15 @@ app.post("/add_user", async (req, res) => {
     res.status(200).send("User added successfully");
   } catch (err) {
     console.log(`Error adding user: ${err}`);
-    res.status(500).json({ error: "Error Adding User" });
+    if (err.code === "23505") {
+      const field = err.constraint.includes("rfid") ? "RFID" : "email";
+      res.status(409).json({
+        error: `${field} already exists`,
+        details: `A user with this ${field.toLowerCase()} is already registered`,
+      });
+    } else {
+      res.status(500).json({ error: "Error Adding User" });
+    }
   }
 });
 
@@ -135,9 +143,6 @@ app.get("/get_user_balance", async (req, res) => {
 
 app.post("/update_user_balance", async (req, res) => {
   const { rfid, balance } = req.body;
-  console.log(
-    `Updating balance for user with rfid: ${rfid}, reducing balance by ${balance}`
-  );
   // Get User First
   try {
     const queryText = "SELECT * FROM users WHERE rfid = $1";
@@ -254,7 +259,7 @@ app.post("/bottle", async (req, res) => {
       res.status(200).send("TRUE");
       console.log(`Bottle accepted`);
     } else {
-      res.status(404).send("FALSE");
+      res.status(400).send("FALSE");
       console.log(`Bottle rejected`);
     }
   } catch (err) {
