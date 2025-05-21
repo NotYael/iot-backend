@@ -25,7 +25,9 @@ app.use(bodyParser.json());
 // THIS IS JUST TO TEST DB CONNECTION
 app.get("/", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM users;");
+    const result = await pool.query(
+      "SELECT * FROM users where rfid = 'Hello';"
+    );
     res.status(200).json(result.rows);
   } catch (err) {
     console.log(`Error connecting to the database: ${err}`);
