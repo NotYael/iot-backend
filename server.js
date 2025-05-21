@@ -89,6 +89,7 @@ app.get("/get_user_by_rfid", async (req, res) => {
     if (result.rows.length > 0) {
       res.status(200).json(result.rows[0]);
     } else {
+      console.log(`RFID mapping not found for user with RFID: ${rfid}`);
       res.status(404).json({ error: "RFID mapping not found" });
     }
   } catch (err) {
