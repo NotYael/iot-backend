@@ -14,6 +14,7 @@ dotenv.config();
 const allowedOrigins = [
   "http://localhost:4000", // Local development
   process.env.FRONTEND_URL, // Production frontend URL
+  "https://ecoloop-sage.vercel.app", // Vercel deployment
 ];
 
 const app = express();
@@ -22,6 +23,7 @@ const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
