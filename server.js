@@ -231,7 +231,7 @@ app.post("/bottle", async (req, res) => {
             content: [
               {
                 type: "text",
-                text: "ONLY ANSWER TRUE OR FALSE! Is this image a photo of a plastic bottle? The state of the bottle doesn't matter. It could be a perfectly good plastic bottle, semi-destroyed, or crushed/flattened. Again, I want the response to be a simple TRUE or FALSE.",
+                text: "ONLY ANSWER TRUE OR FALSE! Is this image a photo of a plastic bottle? The state of the bottle doesn't matter. It could be a perfectly good plastic bottle, semi-destroyed, or crushed/flattened. It could also be a small or a large plastic bottle. There are cases where there are no labels on the bottle, if so look at the shape of the bottle and if there is a cap. Again, I want the response to be a simple TRUE or FALSE.",
               },
               {
                 type: "image_url",
