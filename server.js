@@ -5,17 +5,34 @@ import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
 import nodemailer from "nodemailer";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 dotenv.config();
-
-const app = express();
-const port = process.env.PORT || 4000;
 
 // Configure CORS for both development and production
 const allowedOrigins = [
   "http://localhost:4000", // Local development
   process.env.FRONTEND_URL, // Production frontend URL
 ];
+
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+  },
+});
+
+// Add Socket.IO connection handler
+io.on("connection", (socket) => {
+  socket.on("registerUser", (rfid) => {
+    socket.join(rfid); // Join a room with the RFID
+  });
+});
+
+const port = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors());
@@ -146,7 +163,13 @@ app.get("/get_user_balance", async (req, res) => {
 
 app.post("/update_user_balance", async (req, res) => {
   const { rfid, balance } = req.body;
-  // Get User First
+  console.log(
+    "Received balance update request for RFID:",
+    rfid,
+    "with balance change:",
+    balance
+  );
+
   try {
     const queryText = "SELECT * FROM users WHERE rfid = $1";
     const result = await pool.query(queryText, [rfid]);
@@ -158,7 +181,14 @@ app.post("/update_user_balance", async (req, res) => {
       try {
         const queryText = "UPDATE users SET balance = $2 WHERE rfid = $1";
         await pool.query(queryText, [rfid, newBalance]);
-        console.log(`New balance for user with rfid: ${rfid} is ${newBalance}`);
+
+        io.to(rfid).emit("balanceUpdate", {
+          rfid: rfid,
+          newBalance: newBalance,
+        });
+
+        console.log("Balance update event emitted");
+
         res.status(200).send("Balance updated successfully");
       } catch (err) {
         console.log(`Error adding account balance: ${err}`);
@@ -331,6 +361,6 @@ app.post("/reject_bottle", async (req, res) => {
   res.status(404).send("FALSE");
 });
 
-app.listen(port, () => {
+httpServer.listen(port, () => {
   console.log(`Backend online!`);
 });
