@@ -231,7 +231,7 @@ app.post("/bottle", async (req, res) => {
             content: [
               {
                 type: "text",
-                text: "Is this image a photo of a plastic water bottle? The state of the bottle doesn't matter. It could be a perfectly good water bottle, semi-destroyed, or crushed/flattened. I just need to know if it's a water bottle. I want the response to be a simple TRUE or FALSE.",
+                text: "ONLY ANSWER TRUE OR FALSE! Is this image a photo of a plastic bottle? The state of the bottle doesn't matter. It could be a perfectly good plastic bottle, semi-destroyed, or crushed/flattened. Again, I want the response to be a simple TRUE or FALSE.",
               },
               {
                 type: "image_url",
