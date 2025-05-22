@@ -14,7 +14,6 @@ dotenv.config();
 const allowedOrigins = [
   "http://localhost:4000", // Local development
   process.env.FRONTEND_URL, // Production frontend URL
-  "https://ecoloop-sage.vercel.app", // Vercel deployment
 ];
 
 const app = express();
@@ -237,7 +236,7 @@ app.post("/add_transaction", async (req, res) => {
       balance_modified,
     ]);
     console.log(
-      `Transaction added successfully: ${rfid}, ${transaction_date}, ${transaction_type}, ${bottle_count}, ${balance_modified}`
+      `Transaction added successfully: ${rfid}, ${transaction_date}, ${transaction_type}, bottle count: ${bottle_count}, balance modified: ${balance_modified}`
     );
     res.status(200).send("Transaction added successfully");
   } catch (err) {
