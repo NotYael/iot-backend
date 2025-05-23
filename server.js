@@ -194,47 +194,25 @@ app.get("/get_user_balance", async (req, res) => {
 
 app.post("/update_user_balance", async (req, res) => {
   const { rfid, balance } = req.body;
-  console.log(
-    "Received balance update request for RFID:",
-    rfid,
-    "with balance change:",
-    balance
-  );
 
   try {
     const queryText = "SELECT * FROM users WHERE rfid = $1";
     const result = await pool.query(queryText, [rfid]);
-    console.log("Database query result:", result.rows);
 
     if (result.rows.length > 0) {
       const user = result.rows[0];
       const userBalance = user.balance;
       const newBalance = parseInt(userBalance) + parseInt(balance);
-      console.log(
-        `Current balance: ${userBalance}, New balance will be: ${newBalance}`
-      );
-
       try {
         const updateQuery =
           "UPDATE users SET balance = $2 WHERE rfid = $1 RETURNING *";
         const updateResult = await pool.query(updateQuery, [rfid, newBalance]);
-        console.log("Update result:", updateResult.rows[0]);
 
         // Emit to all sockets in the room
         io.in(rfid).emit("balanceUpdate", {
           rfid: rfid,
           newBalance: newBalance,
         });
-
-        console.log(
-          `Balance update event emitted to ${
-            userSockets.get(rfid)?.size || 0
-          } connected users`
-        );
-        console.log(
-          "Current userSockets Map:",
-          Array.from(userSockets.entries())
-        );
 
         res.status(200).send("Balance updated successfully");
       } catch (err) {
