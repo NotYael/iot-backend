@@ -13,7 +13,7 @@ dotenv.config();
 // Configure CORS for both development and production
 const allowedOrigins = [
   "http://localhost:4000", // Local development
-  process.env.FRONTEND_URL, // Production frontend URL
+  "https://ecoloop-sage.vercel.app", // Vercel deployment
 ];
 
 const app = express();
@@ -27,9 +27,26 @@ const io = new Server(httpServer, {
 });
 
 // Add Socket.IO connection handler
+const userSockets = new Map(); // Keep track of user sockets
+
 io.on("connection", (socket) => {
   socket.on("registerUser", (rfid) => {
-    socket.join(rfid); // Join a room with the RFID
+    // Store the socket ID with the RFID
+    if (!userSockets.has(rfid)) {
+      userSockets.set(rfid, new Set());
+    }
+    userSockets.get(rfid).add(socket.id);
+
+    // Join the room
+    socket.join(rfid);
+
+    // Handle disconnection
+    socket.on("disconnect", () => {
+      userSockets.get(rfid)?.delete(socket.id);
+      if (userSockets.get(rfid)?.size === 0) {
+        userSockets.delete(rfid);
+      }
+    });
   });
 });
 
@@ -183,12 +200,16 @@ app.post("/update_user_balance", async (req, res) => {
         const queryText = "UPDATE users SET balance = $2 WHERE rfid = $1";
         await pool.query(queryText, [rfid, newBalance]);
 
-        io.to(rfid).emit("balanceUpdate", {
+        io.in(rfid).emit("balanceUpdate", {
           rfid: rfid,
           newBalance: newBalance,
         });
 
-        console.log("Balance update event emitted");
+        console.log(
+          `Balance update event emitted to ${
+            userSockets.get(rfid)?.size || 0
+          } connected users`
+        );
 
         res.status(200).send("Balance updated successfully");
       } catch (err) {
