@@ -164,15 +164,6 @@ app.get("/get_user_balance", async (req, res) => {
 
 app.post("/update_user_balance", async (req, res) => {
   const { rfid, balance } = req.body;
-  console.log("=== Balance Update Request ===");
-  console.log("Request body:", req.body);
-  console.log("RFID from request:", rfid);
-  console.log("Balance change:", balance);
-  console.log("Current connected users:", userSockets.size);
-  console.log(
-    "Connected users for this RFID:",
-    userSockets.get(rfid)?.size || 0
-  );
 
   try {
     const queryText = "SELECT * FROM users WHERE rfid = $1";
