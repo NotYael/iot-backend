@@ -30,11 +30,7 @@ const io = new Server(httpServer, {
 const userSockets = new Map(); // Keep track of user sockets
 
 io.on("connection", (socket) => {
-  console.log(`New socket connection: ${socket.id}`);
-
   socket.on("registerUser", (rfid) => {
-    console.log(`User registering with RFID: ${rfid}, Socket ID: ${socket.id}`);
-
     // Store the socket ID with the RFID
     if (!userSockets.has(rfid)) {
       userSockets.set(rfid, new Set());
@@ -43,22 +39,12 @@ io.on("connection", (socket) => {
 
     // Join the room
     socket.join(rfid);
-    console.log(
-      `Current connections for RFID ${rfid}: ${userSockets.get(rfid).size}`
-    );
-
     // Handle disconnection
     socket.on("disconnect", () => {
-      console.log(`Socket disconnecting: ${socket.id} for RFID: ${rfid}`);
       userSockets.get(rfid)?.delete(socket.id);
       if (userSockets.get(rfid)?.size === 0) {
         userSockets.delete(rfid);
       }
-      console.log(
-        `Remaining connections for RFID ${rfid}: ${
-          userSockets.get(rfid)?.size || 0
-        }`
-      );
     });
   });
 });
