@@ -27,9 +27,39 @@ const io = new Server(httpServer, {
 });
 
 // Add Socket.IO connection handler
+const userSockets = new Map(); // Keep track of user sockets
+
 io.on("connection", (socket) => {
+  console.log(`New socket connection: ${socket.id}`);
+
   socket.on("registerUser", (rfid) => {
-    socket.join(rfid); // Join a room with the RFID
+    console.log(`User registering with RFID: ${rfid}, Socket ID: ${socket.id}`);
+
+    // Store the socket ID with the RFID
+    if (!userSockets.has(rfid)) {
+      userSockets.set(rfid, new Set());
+    }
+    userSockets.get(rfid).add(socket.id);
+
+    // Join the room
+    socket.join(rfid);
+    console.log(
+      `Current connections for RFID ${rfid}: ${userSockets.get(rfid).size}`
+    );
+
+    // Handle disconnection
+    socket.on("disconnect", () => {
+      console.log(`Socket disconnecting: ${socket.id} for RFID: ${rfid}`);
+      userSockets.get(rfid)?.delete(socket.id);
+      if (userSockets.get(rfid)?.size === 0) {
+        userSockets.delete(rfid);
+      }
+      console.log(
+        `Remaining connections for RFID ${rfid}: ${
+          userSockets.get(rfid)?.size || 0
+        }`
+      );
+    });
   });
 });
 
@@ -164,18 +194,31 @@ app.get("/get_user_balance", async (req, res) => {
 
 app.post("/update_user_balance", async (req, res) => {
   const { rfid, balance } = req.body;
+  console.log(
+    "Received balance update request for RFID:",
+    rfid,
+    "with balance change:",
+    balance
+  );
 
   try {
     const queryText = "SELECT * FROM users WHERE rfid = $1";
     const result = await pool.query(queryText, [rfid]);
+    console.log("Database query result:", result.rows);
+
     if (result.rows.length > 0) {
       const user = result.rows[0];
       const userBalance = user.balance;
       const newBalance = parseInt(userBalance) + parseInt(balance);
+      console.log(
+        `Current balance: ${userBalance}, New balance will be: ${newBalance}`
+      );
 
       try {
-        const queryText = "UPDATE users SET balance = $2 WHERE rfid = $1";
-        await pool.query(queryText, [rfid, newBalance]);
+        const updateQuery =
+          "UPDATE users SET balance = $2 WHERE rfid = $1 RETURNING *";
+        const updateResult = await pool.query(updateQuery, [rfid, newBalance]);
+        console.log("Update result:", updateResult.rows[0]);
 
         // Emit to all sockets in the room
         io.in(rfid).emit("balanceUpdate", {
@@ -188,15 +231,18 @@ app.post("/update_user_balance", async (req, res) => {
             userSockets.get(rfid)?.size || 0
           } connected users`
         );
-        console.log("=== End Balance Update Request ===");
+        console.log(
+          "Current userSockets Map:",
+          Array.from(userSockets.entries())
+        );
 
         res.status(200).send("Balance updated successfully");
       } catch (err) {
-        console.log(`Error adding account balance: ${err}`);
+        console.log(`Error updating balance in database: ${err}`);
         res.status(500).json({ error: "Error Adding Account Balance" });
       }
     } else {
-      console.log("User not found in database");
+      console.log(`No user found with RFID: ${rfid}`);
       res.status(404).json({ error: "User not found" });
     }
   } catch (err) {
