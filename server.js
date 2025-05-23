@@ -41,17 +41,17 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 // THIS IS JUST TO TEST DB CONNECTION
-app.get("/", async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT * FROM users where rfid = 'Hello';"
-    );
-    res.status(200).json(result.rows);
-  } catch (err) {
-    console.log(`Error connecting to the database: ${err}`);
-    res.status(500).json({ error: "Error fetching users" });
-  }
-});
+// app.get("/", async (req, res) => {
+//   try {
+//     const result = await pool.query(
+//       "SELECT * FROM users where rfid = 'Hello';"
+//     );
+//     res.status(200).json(result.rows);
+//   } catch (err) {
+//     console.log(`Error connecting to the database: ${err}`);
+//     res.status(500).json({ error: "Error fetching users" });
+//   }
+// });
 
 // **** USERS *****
 app.post("/add_user", async (req, res) => {
@@ -164,11 +164,14 @@ app.get("/get_user_balance", async (req, res) => {
 
 app.post("/update_user_balance", async (req, res) => {
   const { rfid, balance } = req.body;
+  console.log("=== Balance Update Request ===");
+  console.log("Request body:", req.body);
+  console.log("RFID from request:", rfid);
+  console.log("Balance change:", balance);
+  console.log("Current connected users:", userSockets.size);
   console.log(
-    "Received balance update request for RFID:",
-    rfid,
-    "with balance change:",
-    balance
+    "Connected users for this RFID:",
+    userSockets.get(rfid)?.size || 0
   );
 
   try {
@@ -183,12 +186,18 @@ app.post("/update_user_balance", async (req, res) => {
         const queryText = "UPDATE users SET balance = $2 WHERE rfid = $1";
         await pool.query(queryText, [rfid, newBalance]);
 
-        io.to(rfid).emit("balanceUpdate", {
+        // Emit to all sockets in the room
+        io.in(rfid).emit("balanceUpdate", {
           rfid: rfid,
           newBalance: newBalance,
         });
 
-        console.log("Balance update event emitted");
+        console.log(
+          `Balance update event emitted to ${
+            userSockets.get(rfid)?.size || 0
+          } connected users`
+        );
+        console.log("=== End Balance Update Request ===");
 
         res.status(200).send("Balance updated successfully");
       } catch (err) {
@@ -196,6 +205,7 @@ app.post("/update_user_balance", async (req, res) => {
         res.status(500).json({ error: "Error Adding Account Balance" });
       }
     } else {
+      console.log("User not found in database");
       res.status(404).json({ error: "User not found" });
     }
   } catch (err) {
