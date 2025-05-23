@@ -27,39 +27,9 @@ const io = new Server(httpServer, {
 });
 
 // Add Socket.IO connection handler
-const userSockets = new Map(); // Keep track of user sockets
-
 io.on("connection", (socket) => {
-  console.log(`New socket connection: ${socket.id}`);
-
   socket.on("registerUser", (rfid) => {
-    console.log(`User registering with RFID: ${rfid}, Socket ID: ${socket.id}`);
-
-    // Store the socket ID with the RFID
-    if (!userSockets.has(rfid)) {
-      userSockets.set(rfid, new Set());
-    }
-    userSockets.get(rfid).add(socket.id);
-
-    // Join the room
-    socket.join(rfid);
-    console.log(
-      `Current connections for RFID ${rfid}: ${userSockets.get(rfid).size}`
-    );
-
-    // Handle disconnection
-    socket.on("disconnect", () => {
-      console.log(`Socket disconnecting: ${socket.id} for RFID: ${rfid}`);
-      userSockets.get(rfid)?.delete(socket.id);
-      if (userSockets.get(rfid)?.size === 0) {
-        userSockets.delete(rfid);
-      }
-      console.log(
-        `Remaining connections for RFID ${rfid}: ${
-          userSockets.get(rfid)?.size || 0
-        }`
-      );
-    });
+    socket.join(rfid); // Join a room with the RFID
   });
 });
 
@@ -213,16 +183,12 @@ app.post("/update_user_balance", async (req, res) => {
         const queryText = "UPDATE users SET balance = $2 WHERE rfid = $1";
         await pool.query(queryText, [rfid, newBalance]);
 
-        io.in(rfid).emit("balanceUpdate", {
+        io.to(rfid).emit("balanceUpdate", {
           rfid: rfid,
           newBalance: newBalance,
         });
 
-        console.log(
-          `Balance update event emitted to ${
-            userSockets.get(rfid)?.size || 0
-          } connected users`
-        );
+        console.log("Balance update event emitted");
 
         res.status(200).send("Balance updated successfully");
       } catch (err) {
